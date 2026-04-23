@@ -3,6 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detection</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0f0f1a;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #ffffff;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: #6c7a9c;
+            margin-top: 6px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .container {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .video-wrapper {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #1e2a45;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        video {
+            display: block;
+            width: 520px;
+            height: 390px;
+            object-fit: cover;
+        }
+
+        .video-label {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(0,0,0,0.6);
+            color: #a0aec0;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .panel {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: #141428;
+            border: 1px solid #1e2a45;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .card-label {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #6c7a9c;
+            margin-bottom: 14px;
+        }
+
+        .emotion-display {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .emotion-name {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .emotion-name.no-face {
+            color: #6c7a9c;
+            font-size: 1rem;
+        }
+
+        .confidence-value {
+            font-size: 1rem;
+            color: #6c7a9c;
+            margin-bottom: 14px;
+        }
+
+        .confidence-bar-bg {
+            height: 4px;
+            background: #1e2a45;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f8ef7, #a78bfa);
+            border-radius: 2px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+
+        .top3-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .top3-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .top3-name {
+            font-size: 0.8rem;
+            text-transform: capitalize;
+            color: #a0aec0;
+            width: 70px;
+            flex-shrink: 0;
+        }
+
+        .top3-bar-bg {
+            flex: 1;
+            height: 4px;
+            background: #1e2a45;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .top3-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f8ef7, #a78bfa);
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+
+        .top3-conf {
+            font-size: 0.75rem;
+            color: #6c7a9c;
+            width: 38px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #4f8ef7;
+            margin-right: 6px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Emotion Detection</h1>
+        <p>Real-time facial expression analysis</p>
+    </header>
+
+    <div class="container">
+
+        <div class="video-wrapper">
+            <video id="video" autoplay></video>
+            <span class="video-label">
+                <span class="status-dot"></span>Live
+            </span>
+        </div>
+
+        <div class="panel">
+
+            <div class="card">
+                <div class="card-label">Detected Emotion</div>
+                <div class="emotion-display">
+                    <div class="emotion-name" id="emotion-label">Waiting</div>
+                    <div class="confidence-value" id="confidence">--</div>
+                    <div class="confidence-bar-bg">
+                        <div class="confidence-bar-fill" id="confidence-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-label">Top Predictions</div>
+                <div class="top3-list" id="top3-container">
+                    <div style="color: #6c7a9c; font-size: 0.8rem;">Waiting for input...</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const checkSocket = setInterval(() => {
+            if (window._socket) {
+                clearInterval(checkSocket);
+
+                window._socket.on('prediction', function(data) {
+                    document.getElementById('emotion-label').innerText = data.label
+                    document.getElementById('emotion-label').className = 'emotion-name'
+                    document.getElementById('confidence').innerText    = data.confidence + '%'
+                    document.getElementById('confidence-bar').style.width = data.confidence + '%'
+
+                    const container = document.getElementById('top3-container')
+                    container.innerHTML = ''
+                    data.top3.forEach(item => {
+                        container.innerHTML += `
+                            <div class="top3-item">
+                                <div class="top3-name">${item.label}</div>
+                                <div class="top3-bar-bg">
+                                    <div class="top3-bar-fill" style="width: ${item.confidence}%"></div>
+                                </div>
+                                <div class="top3-conf">${item.confidence}%</div>
+                            </div>
+                        `
+                    })
+                })
+
+                window._socket.on('no_face', function() {
+                    document.getElementById('emotion-label').innerText = 'No Face Detected'
+                    document.getElementById('emotion-label').className = 'emotion-name no-face'
+                    document.getElementById('confidence').innerText    = '--'
+                    document.getElementById('confidence-bar').style.width = '0%'
+                    document.getElementById('top3-container').innerHTML =
+                        '<div style="color: #6c7a9c; font-size: 0.8rem;">No face in frame</div>'
+                })
+            }
+        }, 100)
+    </script>
+</body>
+</html>
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Camera Stream</title>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
@@ -11,4 +291,4 @@
 <body>
     <video id="video" width="640" height="480" autoplay></video>
 </body>
-</html>
+</html> -->
