@@ -35,6 +35,10 @@ Download the trained models from Google Drive:
 - ~28,700 training images / ~7,200 test images
 - [Download Dataset](https://www.kaggle.com/datasets/msambare/fer2013)
 
+### Server Output
+![Server Running](assets/server_running.png)
+
+![Live Predictions](assets/predictions.png)
 ---
 
 ## **Docker Support**
