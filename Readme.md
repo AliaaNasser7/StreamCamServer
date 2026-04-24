@@ -1,8 +1,39 @@
-# WebSocket Secure (WSS) Camera Stream Application
+# Emotion Detection — Real-time Camera Stream Application
 
 [![Test and Publish Docker Image](https://github.com/MohamedEshmawy/StreamCamServer/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/MohamedEshmawy/StreamCamServer/actions/workflows/docker-publish.yml)
 
-This project provides a secure, real-time camera streaming application using Flask and WebSockets over HTTPS (WSS).
+This project extends the original WebSocket Secure (WSS) camera streaming application by adding a **real-time emotion detection system** powered by deep learning. The app captures live webcam frames, detects faces, and classifies facial expressions into 7 emotion categories using Transfer Learning models trained on the FER2013 dataset.
+
+---
+
+## **What Was Added**
+
+### Emotion Detection Module
+- Integrated a pre-trained **MobileNetV2** model (Transfer Learning) for real-time facial emotion classification.
+- Added **face detection** using OpenCV's Haar Cascade Classifier to crop and isolate faces before prediction.
+- The server now emits prediction results back to the frontend via WebSocket, including the top 3 predicted emotions with confidence scores.
+
+### Models Trained
+Three Transfer Learning models were trained and compared on the [FER2013 Dataset](https://www.kaggle.com/datasets/msambare/fer2013):
+
+| Model | Validation Accuracy |
+|-------|-------------------|
+| MobileNetV2 | 46.4% |
+| VGG16 | 41.9% |
+| ResNet50 | 37.1% |
+
+> **Note:** FER2013 is a challenging dataset — even state-of-the-art models typically achieve 50–70% accuracy due to low image resolution and class imbalance.
+
+Download the trained models from Google Drive:
+[Download Models](https://drive.google.com/drive/folders/1AOhJvz5IUQUX4-Ym4-onC7QiHQn8AWSJ?usp=drive_link)
+
+### Updated Frontend
+- Redesigned the UI to display the detected emotion, confidence score, and top 3 predictions with progress bars in real-time.
+
+### Dataset
+- **FER2013** — 7 emotion classes: `angry`, `disgust`, `fear`, `happy`, `neutral`, `sad`, `surprise`
+- ~28,700 training images / ~7,200 test images
+- [Download Dataset](https://www.kaggle.com/datasets/msambare/fer2013)
 
 ---
 
@@ -63,7 +94,7 @@ If a pull request comes from a fork, GitHub does not expose repository secrets t
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/MohamedEshmawy/StreamCamServer
+   git clone https://github.com/AliaaNasser7/StreamCamServer
    cd StreamCamServer
    ```
 
@@ -94,7 +125,16 @@ If a pull request comes from a fork, GitHub does not expose repository secrets t
    python -m pip install -r requirements.txt
    ```
 
-5. Install OpenSSL on Windows (if applicable):
+5. Download the trained models from [Google Drive](https://drive.google.com/drive/folders/1AOhJvz5IUQUX4-Ym4-onC7QiHQn8AWSJ?usp=drive_link) and place them in a `models/` folder:
+   ```
+   StreamCamServer/
+   └── models/
+       ├── VGG16_best.keras
+       ├── ResNet50_best.keras
+       └── MobileNetV2_best.keras
+   ```
+
+6. Install OpenSSL on Windows (if applicable):
    - **Install via Precompiled Binaries**:
      - Download OpenSSL for Windows from [Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html).
      - Add OpenSSL to your system's `PATH` environment variable.
@@ -106,7 +146,7 @@ If a pull request comes from a fork, GitHub does not expose repository secrets t
        ```
      - You should see the installed OpenSSL version.
 
-6. Generate SSL certificates:
+7. Generate SSL certificates:
    - Open a terminal in the project directory.
    - Run the following command to create the certificates in the `certificates/` folder:
      ```bash
@@ -119,16 +159,16 @@ If a pull request comes from a fork, GitHub does not expose repository secrets t
    - The private key will be saved as `certificates/private.key`.
    - The certificate will be saved as `certificates/certificate.crt`.
 
-7. Start the Flask application with HTTPS and WebSocket Secure (WSS):
+8. Start the Flask application with HTTPS and WebSocket Secure (WSS):
    ```bash
    python server.py
    ```
 
-8. Open the application in your browser:
+9. Open the application in your browser:
    - Navigate to:
      ```
      https://<your-domain-or-ip>:5000
      ```
-   - The application should load, and the camera stream will be displayed.
+   - The application should load, the camera stream will be displayed, and emotion predictions will appear in real-time.
 
 Only port `5000` needs to be published for this app. HTTPS and WSS both use the same Flask-SocketIO listener, so there is no separate HTTP server on port `80` in the current implementation.
